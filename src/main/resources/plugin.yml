@@ -1,0 +1,11 @@
+name: AthenaTrades
+version: '1.0.0'
+main: org.lunatic.athenaTrades.Main
+api-version: '1.21'
+author: Lunatic
+description: Sistem trade antar player dengan GUI dan blacklist.
+
+commands:
+  trade:
+    description: Kirim/terima trade request, atau kelola blocklist.
+    usage: /<command> <player|accept|deny|block|unblock|blocklist>
