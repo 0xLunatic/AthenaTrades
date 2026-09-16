@@ -1,5 +1,6 @@
 package org.lunatic.athenaTrades.listener;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import org.lunatic.athenaTrades.Main;
 import org.lunatic.athenaTrades.trade.TradeGUIHolder;
 import org.lunatic.athenaTrades.trade.TradeSession;
+import org.lunatic.athenaTrades.util.AmountParser;
 
 import java.util.UUID;
 
@@ -47,6 +49,9 @@ public class TradeListener implements Listener {
 
         int slot = rawSlot;
 
+        /*
+         * READY BUTTON
+         */
         if (session.isReadySlot(slot, playerId)) {
             event.setCancelled(true);
             session.toggleReady(playerId);
@@ -54,45 +59,138 @@ public class TradeListener implements Listener {
             return;
         }
 
-        // Klik tombol ready lawan, atau area divider/filler -> selalu dibatalkan
+        /*
+         * MONEY BUTTON
+         */
+        if (session.isMoneySlot(slot, playerId)) {
+            event.setCancelled(true);
+
+            player.sendMessage(ChatColor.RED + "Fitur Ini Belum Aktif");
+
+            if (!plugin.isEconomyEnabled()) {
+                player.sendMessage(ChatColor.RED + "Trade uang sedang dinonaktifkan.");
+                return;
+            }
+
+            if (isReady(session, playerId)) {
+                player.sendMessage(ChatColor.RED + "Batalkan status siap dulu sebelum mengubah nominal.");
+                return;
+            }
+
+//            plugin.getIgnoreNextClose().add(player.getUniqueId());
+//
+//            player.closeInventory();
+
+//            plugin.getSignInputManager().prompt(
+//                    player,
+//                    "Masukkan jumlah",
+//                    "Contoh: 100k",
+//                    input -> {
+//
+//                        Double amount = AmountParser.parse(input);
+//
+//                        if (amount == null) {
+//                            player.sendMessage(ChatColor.RED + "Jumlah tidak valid.");
+//                            return;
+//                        }
+//
+//                        if (!plugin.getEconomyManager().has(player, amount)) {
+//                            player.sendMessage(ChatColor.RED + "Saldo kamu tidak mencukupi.");
+//                            return;
+//                        }
+//
+//                        session.setMoney(playerId, amount);
+//                        session.resetReadyOnEdit(playerId);
+//
+//                        Player other = plugin.getServer()
+//                                .getPlayer(session.getOtherPlayer(playerId));
+//
+//                        player.updateInventory();
+//
+//                        if (other != null) {
+//                            other.updateInventory();
+//                            other.sendMessage(ChatColor.YELLOW
+//                                    + player.getName()
+//                                    + " mengubah nominal trade.");
+//                        }
+//
+//                        player.sendMessage(ChatColor.GREEN
+//                                + "Nominal trade diubah menjadi "
+//                                + plugin.getEconomyManager().format(amount));
+//
+//                        Bukkit.getScheduler().runTask(plugin, () -> {
+//
+//                            player.openInventory(session.getInventory());
+//
+//                            if (other != null) {
+//                                other.openInventory(session.getInventory());
+//                            }
+//
+//                        });
+//                    });
+//
+//            return;
+        }
+
+        /*
+         * Divider / slot lawan
+         */
         if (!session.isPlayerSlot(slot, playerId)) {
             event.setCancelled(true);
             return;
         }
 
-        // Slot milik sendiri, tapi sudah ready -> kunci dulu
+        /*
+         * Sudah ready?
+         */
         if (isReady(session, playerId)) {
             event.setCancelled(true);
             player.sendMessage(ChatColor.RED + "Batalkan status siap dulu sebelum mengubah barang.");
             return;
         }
 
-        // Barang boleh diubah bebas, tapi reset status ready kedua pihak setelah event selesai
-        plugin.getServer().getScheduler().runTask(plugin, () -> session.resetReadyOnEdit(playerId));
+        /*
+         * Barang berubah -> reset ready
+         */
+        plugin.getServer().getScheduler().runTask(plugin,
+                () -> session.resetReadyOnEdit(playerId));
     }
 
     private void handleShiftClickIn(InventoryClickEvent event, TradeSession session, UUID playerId) {
-        if (isReady(session, playerId)) return;
+
+        if (isReady(session, playerId))
+            return;
 
         ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType().isAir()) return;
 
-        int[] slots = playerId.equals(session.getPlayer1Id()) ? TradeSession.PLAYER1_SLOTS : TradeSession.PLAYER2_SLOTS;
+        if (clicked == null || clicked.getType().isAir())
+            return;
+
+        int[] slots = playerId.equals(session.getPlayer1Id())
+                ? TradeSession.PLAYER1_SLOTS
+                : TradeSession.PLAYER2_SLOTS;
 
         for (int slot : slots) {
+
             if (event.getInventory().getItem(slot) == null) {
+
                 event.getInventory().setItem(slot, clicked.clone());
                 event.getClickedInventory().setItem(event.getSlot(), null);
+
                 session.resetReadyOnEdit(playerId);
                 return;
             }
         }
-        // Tidak ada slot kosong tersisa di sisi trade milik player ini, item tetap di inventorynya
     }
 
     private boolean isReady(TradeSession session, UUID playerId) {
-        if (playerId.equals(session.getPlayer1Id())) return session.isPlayer1Ready();
-        if (playerId.equals(session.getPlayer2Id())) return session.isPlayer2Ready();
+
+        if (playerId.equals(session.getPlayer1Id()))
+            return session.isPlayer1Ready();
+
+        if (playerId.equals(session.getPlayer2Id()))
+            return session.isPlayer2Ready();
+
         return false;
     }
 
@@ -104,11 +202,14 @@ public class TradeListener implements Listener {
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
-        InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof TradeGUIHolder)) return;
 
-        // Sederhana & aman: larang drag multi-slot ke bagian mana pun di GUI trade
+        InventoryHolder holder = event.getInventory().getHolder();
+
+        if (!(holder instanceof TradeGUIHolder))
+            return;
+
         for (int slot : event.getRawSlots()) {
+
             if (slot < event.getInventory().getSize()) {
                 event.setCancelled(true);
                 return;
@@ -118,26 +219,26 @@ public class TradeListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) {
+
+        InventoryHolder holder = event.getInventory().getHolder();
+
+        if (!(holder instanceof TradeGUIHolder tradeHolder))
+            return;
+
+        Player player = (Player) event.getPlayer();
+
+        if (plugin.getIgnoreNextClose().remove(player.getUniqueId())) {
             return;
         }
 
-        TradeSession session = plugin.getTradeManager().getSession(player);
+        TradeSession session = tradeHolder.getSession();
 
-        // Sudah tidak ada session aktif
-        if (session == null) {
-            return;
+        if (!session.isCompleted()) {
+            plugin.getTradeManager().cancelTrade(
+                    session,
+                    "Trade dibatalkan karena salah satu pihak menutup GUI."
+            );
         }
-
-        // Sudah selesai
-        if (session.isCompleted()) {
-            return;
-        }
-
-        plugin.getTradeManager().cancelTrade(
-                session,
-                "Trade dibatalkan karena salah satu pihak menutup GUI."
-        );
     }
 
     @EventHandler

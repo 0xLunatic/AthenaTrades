@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="com.obiscr.chatgpt.settings.EasyCodeState">
+    <option name="projectFiles" value="$PROJECT_DIR$/build/reports/problems/problems-report.html;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/blacklist/BlacklistManager.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/command/TradeCommand.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/economy/EconomyManager.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/listener/SignInputListener.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/listener/TradeListener.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/trade/TradeGUIHolder.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/trade/TradeManager.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/trade/TradeRequest.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/trade/TradeSession.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/util/AmountParser.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/util/SignInputManager.java;D:/Plugin MC/AthenaTrades/src/main/java/org/lunatic/athenaTrades/Main.java;D:/Plugin MC/AthenaTrades/README.md" />
+  </component>
+</project>

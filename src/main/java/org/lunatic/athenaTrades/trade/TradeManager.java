@@ -1,15 +1,14 @@
 package org.lunatic.athenaTrades.trade;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.lunatic.athenaTrades.Main;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TradeManager {
 
@@ -129,8 +128,6 @@ public class TradeManager {
         session.clearTradeSlots();
         session.setCompleted(true);
 
-        endSession(session);
-
         p2Items.forEach(item -> p1.getInventory().addItem(item));
         p1Items.forEach(item -> p2.getInventory().addItem(item));
 
@@ -139,6 +136,8 @@ public class TradeManager {
 
         p1.sendMessage(ChatColor.GREEN + "Trade berhasil!");
         p2.sendMessage(ChatColor.GREEN + "Trade berhasil!");
+
+        endSession(session);
     }
 
     private boolean hasSpaceFor(Player player, List<ItemStack> items) {
@@ -152,33 +151,52 @@ public class TradeManager {
     }
 
     public void cancelTrade(TradeSession session, String reasonMessage) {
-        if (session.isCompleted()) return;
+
+        if (session.isCompleted()) {
+            return;
+        }
+
+        if (session.isCancelled()) {
+            return;
+        }
+
+        session.setCancelled(true);
 
         Player p1 = plugin.getServer().getPlayer(session.getPlayer1Id());
         Player p2 = plugin.getServer().getPlayer(session.getPlayer2Id());
 
-        // Hapus session TERLEBIH DAHULU agar InventoryCloseEvent berikutnya tidak memproses lagi
         endSession(session);
 
-        // Kembalikan item
         returnItems(p1, session.getPlayer1Items());
         returnItems(p2, session.getPlayer2Items());
 
         session.clearTradeSlots();
-        session.setCompleted(true);
 
         if (reasonMessage != null) {
-            if (p1 != null) p1.sendMessage(ChatColor.RED + reasonMessage);
-            if (p2 != null) p2.sendMessage(ChatColor.RED + reasonMessage);
+            if (p1 != null) {
+                p1.sendMessage(ChatColor.RED + reasonMessage);
+            }
+
+            if (p2 != null) {
+                p2.sendMessage(ChatColor.RED + reasonMessage);
+            }
         }
 
-        if (p1 != null && p1.getOpenInventory().getTopInventory().getHolder() instanceof TradeGUIHolder) {
-            p1.closeInventory();
-        }
+        Bukkit.getScheduler().runTask(plugin, () -> {
 
-        if (p2 != null && p2.getOpenInventory().getTopInventory().getHolder() instanceof TradeGUIHolder) {
-            p2.closeInventory();
-        }
+            if (p1 != null && p1.isOnline()) {
+                if (p1.getOpenInventory().getTopInventory().equals(session.getInventory())) {
+                    p1.closeInventory();
+                }
+            }
+
+            if (p2 != null && p2.isOnline()) {
+                if (p2.getOpenInventory().getTopInventory().equals(session.getInventory())) {
+                    p2.closeInventory();
+                }
+            }
+
+        });
     }
 
     private void returnItems(Player player, List<ItemStack> items) {

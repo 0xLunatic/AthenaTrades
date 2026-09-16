@@ -20,7 +20,8 @@ import java.util.UUID;
  *  - Baris 0        : dekorasi (glass pane)
  *  - Baris 1-3      : slot barang. Kolom 0-3 milik player1, kolom 5-8 milik player2,
  *                      kolom 4 jadi divider (glass pane merah)
- *  - Baris 4 (45-53): tombol "ready" masing-masing di slot 48 & 50
+ *  - Baris 4 (45-53): slot 37 = tombol uang player1, slot 43 = tombol uang player2,
+ *                      slot 48/50 = tombol "ready" masing-masing
  */
 public class TradeSession {
 
@@ -28,11 +29,13 @@ public class TradeSession {
     public static final int[] PLAYER2_SLOTS = {14, 15, 16, 17, 23, 24, 25, 26, 32, 33, 34, 35};
     public static final int PLAYER1_READY_SLOT = 48;
     public static final int PLAYER2_READY_SLOT = 50;
+    public static final int PLAYER1_MONEY_SLOT = 37;
+    public static final int PLAYER2_MONEY_SLOT = 43;
 
     private static final int[] DIVIDER_SLOTS = {13, 22, 31};
     private static final int[] FILLER_SLOTS = {
             0, 1, 2, 3, 4, 5, 6, 7, 8,
-            36, 37, 38, 39, 40, 41, 42, 43, 44,
+            36, 38, 39, 40, 41, 42, 44,
             45, 46, 47, 49, 51, 52, 53
     };
 
@@ -44,6 +47,9 @@ public class TradeSession {
     private boolean player1Ready = false;
     private boolean player2Ready = false;
     private boolean completed = false;
+
+    private double player1Money = 0;
+    private double player2Money = 0;
 
     public TradeSession(Player player1, Player player2) {
         this.player1Id = player1.getUniqueId();
@@ -67,6 +73,7 @@ public class TradeSession {
         }
 
         refreshReadyButtons();
+        refreshMoneyButtons();
     }
 
     private ItemStack namedItem(Material material, String name) {
@@ -87,6 +94,67 @@ public class TradeSession {
         inventory.setItem(PLAYER2_READY_SLOT, player2Ready ? ready : notReady);
     }
 
+    public void refreshMoneyButtons() {
+        inventory.setItem(PLAYER1_MONEY_SLOT, buildMoneyIcon(player1Money));
+        inventory.setItem(PLAYER2_MONEY_SLOT, buildMoneyIcon(player2Money));
+    }
+
+    private ItemStack buildMoneyIcon(double amount) {
+        String amountText = String.format("%,.2f", amount);
+        if (amount <= 0) {
+            ItemStack item = namedItem(Material.GOLD_NUGGET, ChatColor.YELLOW + "Klik untuk menawarkan uang");
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setLore(List.of(ChatColor.GRAY + "Belum ada uang ditawarkan"));
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+        ItemStack item = namedItem(Material.GOLD_INGOT, ChatColor.GOLD + "Rp " + amountText);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setLore(List.of(
+                    ChatColor.GRAY + "Klik untuk ubah jumlah",
+                    ChatColor.DARK_GRAY + "Uang ini sudah ditahan (escrow)"
+            ));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    public boolean isMoneySlot(int slot, UUID playerId) {
+        if (slot == PLAYER1_MONEY_SLOT && playerId.equals(player1Id)) return true;
+        return slot == PLAYER2_MONEY_SLOT && playerId.equals(player2Id);
+    }
+
+    public double getMoney(UUID playerId) {
+        if (playerId.equals(player1Id)) return player1Money;
+        if (playerId.equals(player2Id)) return player2Money;
+        return 0;
+    }
+
+    /**
+     * Set nilai uang yang ditampilkan di GUI untuk player tertentu.
+     * Penarikan/pengembalian saldo lewat economy TIDAK dilakukan di sini -
+     * itu tanggung jawab TradeManager supaya TradeSession tetap murni soal state GUI.
+     */
+    public void setMoney(UUID playerId, double amount) {
+        if (playerId.equals(player1Id)) {
+            player1Money = amount;
+        } else if (playerId.equals(player2Id)) {
+            player2Money = amount;
+        }
+        refreshMoneyButtons();
+    }
+
+    public double getPlayer1Money() {
+        return player1Money;
+    }
+
+    public double getPlayer2Money() {
+        return player2Money;
+    }
+
     public boolean isPlayerSlot(int slot, UUID playerId) {
         int[] slots;
         if (playerId.equals(player1Id)) {
@@ -100,6 +168,16 @@ public class TradeSession {
             if (s == slot) return true;
         }
         return false;
+    }
+
+    private boolean cancelled = false;
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
     }
 
     public boolean isReadySlot(int slot, UUID playerId) {
